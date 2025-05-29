@@ -1,0 +1,12 @@
+{
+  "greeting": "你好，世界！",
+  "message": {
+    "welcome": "欢迎来到 Vue I18n 示例"
+  },
+  "button": {
+    "submit": "提交"
+  },
+  "error": {
+    "required": "此字段是必需的。"
+  }
+}

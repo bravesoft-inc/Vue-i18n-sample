@@ -1,0 +1,12 @@
+{
+  "greeting": "Hello, world!",
+  "message": {
+    "welcome": "Welcome to the Vue I18n Sample"
+  },
+  "button": {
+    "submit": "Submit"
+  },
+  "error": {
+    "required": "This field is required."
+  }
+}

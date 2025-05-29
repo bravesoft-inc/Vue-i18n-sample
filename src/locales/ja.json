@@ -1,0 +1,12 @@
+{
+  "greeting": "こんにちは、世界！",
+  "message": {
+    "welcome": "Vue I18n サンプルへようこそ"
+  },
+  "button": {
+    "submit": "送信"
+  },
+  "error": {
+    "required": "この項目は必須です。"
+  }
+}

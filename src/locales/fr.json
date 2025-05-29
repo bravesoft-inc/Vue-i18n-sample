@@ -1,0 +1,12 @@
+{
+  "greeting": "Bonjour le monde !",
+  "message": {
+    "welcome": "Bienvenue à l'exemple Vue I18n"
+  },
+  "button": {
+    "submit": "Soumettre"
+  },
+  "error": {
+    "required": "Ce champ est requis."
+  }
+}
