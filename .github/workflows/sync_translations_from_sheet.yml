@@ -1,0 +1,122 @@
+# .github/workflows/sync_translations_from_sheet.yml
+name: Sync Translations from Google Sheet
+
+on:
+  workflow_dispatch: # 手動実行を許可
+  schedule:
+    - cron: '0 */6 * * *' # 6時間ごとに実行 (時間は適宜調整)
+
+jobs:
+  sync-sheet:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # リポジトリへの書き込み権限を付与
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # プロジェクトで使用しているNode.jsバージョン
+
+      - name: Install Google API Client and CSV writer
+        run: npm install googleapis csv-stringify # または必要なライブラリ
+
+      - name: Create script to fetch and save CSV
+        run: |
+          cat << 'EOF' > ./fetch-sheet-as-csv.mjs
+          import { google } from 'googleapis';
+          import fs from 'fs/promises';
+          import { stringify } from 'csv-stringify/sync'; // csv-stringify を同期的に使う場合
+
+          const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+          const SHEET_NAME = process.env.SHEET_NAME;
+          const GCP_SA_KEY_BASE64 = process.env.GCP_SA_KEY_BASE64; // Base64エンコードされたキー
+          const OUTPUT_CSV_PATH = './translations.csv';
+
+          async function main() {
+            if (!SPREADSHEET_ID || !SHEET_NAME || !GCP_SA_KEY_BASE64) {
+              console.error('Missing required environment variables: SPREADSHEET_ID, SHEET_NAME, GCP_SA_KEY_BASE64');
+              process.exit(1);
+            }
+
+            // Base64デコードしてサービスアカウントキーを取得
+            const keyFileContent = Buffer.from(GCP_SA_KEY_BASE64, 'base64').toString('utf-8');
+            const keys = JSON.parse(keyFileContent);
+
+            const auth = new google.auth.GoogleAuth({
+              credentials: keys,
+              scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+            });
+
+            const sheets = google.sheets({ version: 'v4', auth });
+
+            try {
+              console.log(`Fetching data from Spreadsheet ID: ${SPREADSHEET_ID}, Sheet: ${SHEET_NAME}`);
+              const response = await sheets.spreadsheets.values.get({
+                spreadsheetId: SPREADSHEET_ID,
+                range: SHEET_NAME, // シート全体を取得 (例: 'シート1!A:Z') または特定の範囲
+              });
+
+              const rows = response.data.values;
+              if (!rows || rows.length === 0) {
+                console.log('No data found in the sheet.');
+                // 空のCSVファイルを作成するか、エラーにするかなどをここで決定
+                await fs.writeFile(OUTPUT_CSV_PATH, ''); // 例: 空のCSV
+                return;
+              }
+
+              const csvString = stringify(rows);
+              await fs.writeFile(OUTPUT_CSV_PATH, csvString);
+              console.log(`CSV data successfully fetched and saved to ${OUTPUT_CSV_PATH}`);
+
+            } catch (err) {
+              console.error('Error fetching or processing sheet data:', err);
+              process.exit(1);
+            }
+          }
+
+          main();
+          EOF
+
+      - name: Fetch data from Google Sheet and save as CSV
+        env:
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          SHEET_NAME: ${{ secrets.SHEET_NAME }}
+          GCP_SA_KEY_BASE64: ${{ secrets.GCP_SA_KEY }} # GitHub Secrets は Base64 エンコード不要 (直接JSON文字列を格納)
+                                                     # ただし、Node.jsスクリプト内でJSONとしてパースするために文字列として扱うか、
+                                                     # GitHub Actionsの機能で一時ファイルに書き出してパスを渡すなどの工夫が必要
+                                                     # ここでは環境変数経由でJSON文字列を渡し、スクリプト内でパースする例に修正
+        run: |
+          # GCP_SA_KEY はJSON文字列なので、一時ファイルに書き出す
+          echo "${{ secrets.GCP_SA_KEY }}" > ./gcp_sa_key.json
+          # スクリプト側の修正: fetch-sheet-as-csv.mjs は GCP_SA_KEY_BASE64 の代わりに
+          # ./gcp_sa_key.json を直接読み込むか、環境変数からJSON文字列として受け取るように修正が必要
+          # 上記のスクリプト例では Base64 を仮定しているので、Secret の渡し方とスクリプトの読み込み方を合わせる必要がある。
+          # より簡単なのは、スクリプト内で `process.env.GCP_SA_KEY` を JSON.parse する方法。
+          # その場合、スクリプト内の `GCP_SA_KEY_BASE64` 関連の処理を以下のように変更する:
+          # const keyFileContent = process.env.GCP_SA_KEY;
+          # const keys = JSON.parse(keyFileContent);
+          # ---
+          # ここでは上記の fetch-sheet-as-csv.mjs スクリプトが process.env.GCP_SA_KEY (JSON文字列) を
+          # 直接パースする前提で環境変数を設定する。
+          node ./fetch-sheet-as-csv.mjs
+        env: # 再度 env を定義して GCP_SA_KEY を文字列として渡す
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          SHEET_NAME: ${{ secrets.SHEET_NAME }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }} # JSON文字列を直接渡す
+
+      - name: Commit and push if CSV changed
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add translations.csv
+          # 変更があった場合のみコミットし、なければ何もしない
+          if ! git diff --staged --quiet; then
+            git commit -m "Chore: Update translations.csv from Google Sheet"
+            git push
+          else
+            echo "No changes to translations.csv"
+          fi
