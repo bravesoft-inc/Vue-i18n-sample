@@ -40,11 +40,8 @@ jobs:
           git add src/locales/*.json
           if ! git diff --staged --quiet; then
             git commit -m "Chore: Auto-generate JSON translation files from CSV (triggered by workflow)"
-            # チェックアウトした特定のコミットに対してプッシュするため、
-            # トリガー元のブランチにプッシュするようにブランチ名を明示的に指定した方が安全な場合があります。
-            # 例: git push origin HEAD:${{ github.event.workflow_run.head_branch }}
-            # ただし、通常はチェックアウトしたブランチの追跡ブランチにプッシュされます。
-            git push
+            # プッシュ先のブランチを明示的に指定
+            git push origin HEAD:${{ github.event.workflow_run.head_branch }} # <--- 修正箇所
           else
             echo "No changes to JSON translation files."
           fi
