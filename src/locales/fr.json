@@ -1,5 +1,5 @@
 {
-  "greeting": "Bonjour le monde !",
+  "greeting": "Bonjour le monde !\"",
   "message": {
     "welcome": "Bienvenue à l'exemple Vue I18n"
   },
