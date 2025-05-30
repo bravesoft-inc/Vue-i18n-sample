@@ -1,5 +1,5 @@
 key,ja,en,fr,zh
-greeting,こんにちは、世界！,"Hello, world!",Bonjour le monde !,你好，世界！
+greeting,ハローワールド！,"Hello, world!","Bonjour le monde !""",你好，世界！
 message.welcome,Vue I18n サンプルへようこそ,Welcome to the Vue I18n Sample,Bienvenue à l'exemple Vue I18n,欢迎来到 Vue I18n 示例
-button.submit,送信,Submit,Soumettre,提交
+button.submit,送信,	Submit,Soumettre,提交
 error.required,この項目は必須です。,This field is required.,Ce champ est requis.,此字段是必需的。
