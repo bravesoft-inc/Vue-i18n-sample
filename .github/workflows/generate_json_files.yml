@@ -2,46 +2,48 @@
 name: Generate JSON Translation Files from CSV
 
 on:
-  push:
-    branches:
-      - main # mainブランチ (または開発用ブランチ) を指定
-    paths:
-      - 'translations.csv' # translations.csv ファイルに変更があった時のみ実行
+  workflow_run:
+    workflows: ["Sync Translations from Google Sheet"] # ★ トリガー元のワークフローの `name` を指定
+    types:
+      - completed # ワークフローが完了したときにトリガー
 
 jobs:
   generate-json:
     runs-on: ubuntu-latest
+    # ★ トリガー元のワークフローが成功した場合のみ実行する
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     permissions:
-      contents: write # リポジトリへの書き込み権限を付与
+      contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # ワークフローがトリガーされたコミットと同じコミットを取得
-          # これにより、最新の translations.csv を元に処理が行える
-          ref: ${{ github.head_ref || github.ref }}
+          # トリガーとなったワークフローが実行されたコミット（CSVが更新されたコミット）のSHAを指定
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # プロジェクトで使用しているNode.jsバージョン
+          node-version: '20'
 
       - name: Install dependencies
-        run: npm install # package-lock.json に基づいて依存関係をインストール
+        run: npm install
 
       - name: Generate JSON files from CSV
-        run: npm run convert-translations # package.json に定義されたコマンドを実行
+        run: npm run convert-translations
 
       - name: Commit and push JSON files if changed
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          # src/locales ディレクトリ内の変更をステージング
           git add src/locales/*.json
-          # 変更があった場合のみコミットし、なければ何もしない
           if ! git diff --staged --quiet; then
-            git commit -m "Chore: Auto-generate JSON translation files from CSV"
+            git commit -m "Chore: Auto-generate JSON translation files from CSV (triggered by workflow)"
+            # チェックアウトした特定のコミットに対してプッシュするため、
+            # トリガー元のブランチにプッシュするようにブランチ名を明示的に指定した方が安全な場合があります。
+            # 例: git push origin HEAD:${{ github.event.workflow_run.head_branch }}
+            # ただし、通常はチェックアウトしたブランチの追跡ブランチにプッシュされます。
             git push
           else
             echo "No changes to JSON translation files."
