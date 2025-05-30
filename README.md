@@ -1,5 +1,9 @@
 # Vue.js i18n サンプルプロジェクト
 
+## 管理スプレッドシート
+
+https://docs.google.com/spreadsheets/d/1gE4GzsIL5pwf1IEp94oN_XFuGpZPdXUv_UlFWtGf1Zw/edit?gid=0#gid=0
+
 このプロジェクトは、Vue.js 3, TypeScript, および `vue-i18n@next` を使用して多言語対応 (i18n) を実装したサンプルアプリケーションです。翻訳文言はCSVファイルで一元管理し、Node.jsスクリプトでJSON形式に変換します。
 
 ## 主な特徴
