@@ -103,10 +103,6 @@ jobs:
           # ここでは上記の fetch-sheet-as-csv.mjs スクリプトが process.env.GCP_SA_KEY (JSON文字列) を
           # 直接パースする前提で環境変数を設定する。
           node ./fetch-sheet-as-csv.mjs
-        env: # 再度 env を定義して GCP_SA_KEY を文字列として渡す
-          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
-          SHEET_NAME: ${{ secrets.SHEET_NAME }}
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }} # JSON文字列を直接渡す
 
       - name: Commit and push if CSV changed
         run: |
